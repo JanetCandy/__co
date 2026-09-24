@@ -42,5 +42,29 @@ CHIP ALU {
         ng; // 1 if (out < 0),  0 otherwise
 
     PARTS:
-   // Put you code here:
+    // --- Step 1: Process X input (zx, nx) ---
+    Mux16(a=x, b=false, sel=zx, out=x1);      // If zx == 1, set x = 0
+    Not16(in=x1, out=notx1);
+    Mux16(a=x1, b=notx1, sel=nx, out=x2);     // If nx == 1, set x = !x
+
+    // --- Step 2: Process Y input (zy, ny) ---
+    Mux16(a=y, b=false, sel=zy, out=y1);      // If zy == 1, set y = 0
+    Not16(in=y1, out=noty1);
+    Mux16(a=y1, b=noty1, sel=ny, out=y2);     // If ny == 1, set y = !y
+
+    // --- Step 3: Compute f (x + y or x & y) ---
+    Add16(a=x2, b=y2, out=sum);
+    And16(a=x2, b=y2, out=and);
+    Mux16(a=and, b=sum, sel=f, out=fout);     // f == 0: x & y, f == 1: x + y
+
+    // --- Step 4: Post-process output (no) & Sub-bus splitting ---
+    Not16(in=fout, out=notfout);
+    // Route final output to out[16], sub-buses for zr evaluation, and MSB for ng
+    Mux16(a=fout, b=notfout, sel=no, out=out, out[0..7]=low8, out[8..15]=high8, out[15]=ng);
+
+    // --- Step 5: Compute status flag zr ---
+    Or8Way(in=low8, out=orLow);
+    Or8Way(in=high8, out=orHigh);
+    Or(a=orLow, b=orHigh, out=nonzero);
+    Not(in=nonzero, out=zr);                 // 1 if all bits are 0, else 0
 }
