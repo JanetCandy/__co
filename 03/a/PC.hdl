@@ -16,5 +16,18 @@ CHIP PC {
     OUT out[16];
 
     PARTS:
-    // Put your code here:
+    // 1. 計算自增值 out + 1
+    Inc16(in=feedback, out=pcInc);
+
+    // 2. 處理 inc (優先度最低)：決定是維持原值還是 +1
+    Mux16(a=feedback, b=pcInc, sel=inc, out=outInc);
+
+    // 3. 處理 load：若 load == 1，覆蓋為外部輸入 in
+    Mux16(a=outInc, b=in, sel=load, out=outLoad);
+
+    // 4. 處理 reset (優先度最高)：若 reset == 1，強制的歸零
+    Mux16(a=outLoad, b=false, sel=reset, out=outReset);
+
+    // 5. 鎖存狀態並輸出 (Register 的 load 永遠設為 true)
+    Register(in=outReset, load=true, out=out, out=feedback);
 }

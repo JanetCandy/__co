@@ -14,5 +14,9 @@ CHIP Bit {
     OUT out;
 
     PARTS:
-    // Put your code here:
+    // 1. 根據 load 決定選擇「新輸入 in」還是 「舊輸出 feedback」
+    Max(a=feedback, b=in, sel=load, out=muxOut);
+
+    // 2. 將 Mux 選擇結果送入 DFF， 並同時輸出至 out 與內部反饋 feedback
+    DFF(in=muxOut, out=out, out=feedback);
 }
