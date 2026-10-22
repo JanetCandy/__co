@@ -39,5 +39,44 @@ CHIP CPU {
         pc[15];          // address of next instruction
 
     PARTS:
-    // Put your code here:
+    // 1. Instruction type & A-Register Input Mux
+    Not(in=instruction[15], out=isAInstruction);
+    Mux16(a=aluOut, b=instruction, sel=isAInstruction, out=aRegIn);
+
+    // 2. A-Register Load Control & A-Register
+    Or(a=isAInstruction, b=instruction[5], out=loadA);
+    ARegister(in=aRegIn, load=loadA, out=aOut, out[0..14]=addressM);
+
+    // 3. ALU Y-Input Mux (A vs M)
+    Mux16(a=aOut, b=inM, sel=instruction[12], out=aluY);
+
+    // 4. D-Register Load Control & D-Register
+    And(a=instruction[15], b=instruction[4], out=loadD);
+    DRegister(in=aluOut, load=loadD, out=dOut);
+
+    // 5. ALU
+    ALU(x=dOut, y=aluY, 
+        zx=instruction[11], nx=instruction[10], 
+        zy=instruction[9], ny=instruction[8], 
+        f=instruction[7], no=instruction[6], 
+        out=aluOut, out=outM, zr=zr, ng=ng);
+
+    // 6. Write to M Control Bit
+    And(a=instruction[15], b=instruction[3], out=writeM);
+
+    // 7. PC Jump Logic
+    Or(a=ng, b=zr, out=ngOrZr);
+    Not(in=ngOrZr, out=gt);
+
+    And(a=instruction[2], b=ng, out=j1);
+    And(a=instruction[1], b=zr, out=j2);
+    And(a=instruction[0], b=gt, out=j3);
+    
+    Or(a=j1, b=j2, out=j12);
+    Or(a=j12, b=j3, out=jumpCondition);
+
+    And(a=instruction[15], b=jumpCondition, out=jump);
+
+    // Program Counter
+    PC(in=aOut, load=jump, inc=true, reset=reset, out[0..14]=pc);
 }

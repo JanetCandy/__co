@@ -27,5 +27,16 @@ CHIP Memory {
     OUT out[16];
 
     PARTS:
-    // Put your code here:
+    // 1. 根據 address[14] 區分 RAM (0x0000-0x3FFF) 與 I/O (0x4000-0x6000)
+    DMux(in=load, sel=address[14], a=loadRAM, b=loadIO);
+    RAM16K(in=in, load=loadRAM, address=address[0..13], out=ramOut);
+
+    // 2. 針對 I/O 區域，根據 address[13] 區分 Screen (0x4000-0x5FFF) 與 Keyboard (0x6000)
+    DMux(in=loadIO, sel=address[13], a=loadScreen, b=loadKeyboard);
+    Screen(in=in, load=loadScreen, address=address[0..11], out=screenOut);
+    Keyboard(out=keyboardOut);
+
+    // 3. 輸出多工選擇
+    Mux16(a=screenOut, b=keyboardOut, sel=address[13], out=ioOut);
+    Mux16(a=ramOut, b=ioOut, sel=address[14], out=out);
 }
